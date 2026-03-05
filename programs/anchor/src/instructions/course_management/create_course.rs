@@ -10,7 +10,7 @@ pub struct CreateCourse<'info> {
   #[account(
     init,
     payer = authority,
-    seeds = [b"course", course_id.as_bytes()],
+    seeds = [b"course", course.course_id.as_bytes()],
     space = 8 + Course::INIT_SPACE,
     bump
   )]
@@ -29,9 +29,15 @@ pub struct CreateCourse<'info> {
 
 pub fn update_config(ctx: Context<CreateCourse>, course_id: String, creator_wallet: Pubkey, xp_per_lesson: u64,
 lesson_count: u16,    creator_reward_xp: u64,
-min_completions_for_reward: u32, total_completions: u32, track: String, prerequisite: Option<Pubkey>, difficulty: u8, 
-is_active: bool) -> Result<()> {
+min_completions_for_reward: u32, total_completions: u32, track: String, prerequisite: Option<Pubkey>, difficulty: u8) -> Result<()> {
+
+  
   let course = &mut ctx.accounts.course;
+
+  require!(!course_id.is_empty(), ErrorCode::CourseIdEmpty);
+  require!(lesson_count > 0, ErrorCode::InvalidLessonCount);
+  require!(difficulty >= 1 && difficulty <= 3, ErrorCode::InvalidDifficulty);
+
   course.course_id = course_id;
   course.creator_wallet = creator_wallet;
   course.xp_per_lesson = xp_per_lesson;
@@ -43,6 +49,7 @@ is_active: bool) -> Result<()> {
   course.prerequisite = prerequisite;
   course.difficulty = difficulty;
   course.is_active = true;
+  course.bump = ctx.bumps.course;
 
   Ok(())
 }
