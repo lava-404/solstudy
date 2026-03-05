@@ -3,3 +3,6 @@ pub use initialize::*;
 
 pub mod platform_management;
 pub use platform_management::*;
+
+pub mod course_management;
+pub use course_management::*;
