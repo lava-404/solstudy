@@ -101,4 +101,12 @@ pub enum ErrorCode {
 
     #[msg("XP reward must be greater than zero")]
     InvalidXpReward,
+
+    // -----------------------------
+    // Enrollment
+    // -----------------------------
+    #[msg("Enrollment already exists for this course and user")]
+    EnrollmentAlreadyExists,
+    
+
 }

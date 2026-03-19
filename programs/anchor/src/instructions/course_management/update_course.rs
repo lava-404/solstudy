@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use crate::state::{Config, Course};
-
+use crate::error::ErrorCode;
 #[derive(Accounts)]
 pub struct UpdateCourse<'info> {
     /// Only authority can update course

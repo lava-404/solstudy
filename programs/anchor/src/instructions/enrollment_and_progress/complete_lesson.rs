@@ -1,9 +1,8 @@
-use std::task::Context;
+use anchor_lang::prelude::*;
+use anchor_spl::token::{Mint, TokenAccount, Token, MintTo, mint_to};
 
-use anchor_lang::prelude::{self, CpiContext, InterfaceAccount};
-use anchor_spl::{associated_token::spl_associated_token_account::solana_program::stake::config::Config, token::TokenAccount};
-
-use crate::Course;
+use crate::state::{Course, Enrollment, Config};
+use crate::error::ErrorCode;
 
 #[derive(Accounts)]
 pub struct CompleteLesson<'info> {
@@ -18,13 +17,18 @@ pub struct CompleteLesson<'info> {
 
   #[account(
     mut,
-    seeds = [b"course", course.course_id.as_bytes]
+    seeds = [b"course", course.course_id.as_bytes()],
+    bump = course.bump
   )]
   pub course: Account<'info, Course>,
 
   #[account(
     mut,
-    seeds = [b"enrollment", course.course_id.as_le_bytes(), enrollment.learner.key()],
+    seeds = [
+      b"enrollment",
+      course.course_id.as_bytes(),
+      enrollment.learner.as_ref()
+    ],
     bump = enrollment.bump,
     constraint = enrollment.course == course.key()
   )]
@@ -32,16 +36,15 @@ pub struct CompleteLesson<'info> {
 
   #[account(
     mut,
-    address = config.total_xp_minted)]
-  pub xp_mint: InterfaceAccount<'info, Mint>,
+    address = config.xp_mint
+  )]
+  pub xp_mint: Account<'info, Mint>,
 
   #[account(mut)]
-  pub learner_ata: InterfaceAccount<'info, TokenAccount>,
+  pub learner_ata: Account<'info, TokenAccount>,
 
-  pub token_program: Interface<'info, TokenInterface>,
-
+  pub token_program: Program<'info, Token>,
 }
-
 
 pub fn complete_lesson(
   ctx: Context<CompleteLesson>,
@@ -81,31 +84,34 @@ pub fn complete_lesson(
   // -----------------------------
   let word_index = (lesson_index / 64) as usize;
   let bit_index = lesson_index % 64;
-
   let mask = 1u64 << bit_index;
 
-  // Check already completed
   require!(
       enrollment.lesson_flags[word_index] & mask == 0,
       ErrorCode::LessonAlreadyCompleted
   );
 
-  // Set bit
   enrollment.lesson_flags[word_index] |= mask;
+
+  // -----------------------------
+  // FIXED signer seeds
+  // -----------------------------
+  let signer: &[&[&[u8]]] = &[&[b"config", &[config.bump]]];
 
   // -----------------------------
   // Mint XP
   // -----------------------------
-  let seeds = &[b"config".as_ref(), &[config.bump]];
-let signer_seeds = &[&seeds[..]];
-
   let cpi_accounts = MintTo {
       mint: ctx.accounts.xp_mint.to_account_info(),
-      to: ctx.accounts.learner_xp_ata.to_account_info(),
+      to: ctx.accounts.learner_ata.to_account_info(),
       authority: ctx.accounts.config.to_account_info(),
   };
 
-  let cpi_ctx = CpiContext::new_with_signer(ctx.accounts.token_program.to_account_info(), cpi_accounts, signer_seed);
+  let cpi_ctx = CpiContext::new_with_signer(
+      ctx.accounts.token_program.to_account_info(),
+      cpi_accounts,
+      signer,
+  );
 
   mint_to(cpi_ctx, course.xp_per_lesson)?;
 

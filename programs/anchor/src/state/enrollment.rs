@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 #[account]
+#[derive(InitSpace)]
 pub struct Enrollment {
     /// Course this enrollment belongs to
     pub course: Pubkey,

@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 
 use crate::{Course, Enrollment};
+use crate::error::ErrorCode;
 #[derive(Accounts)]
 
 pub struct Enroll<'info> {

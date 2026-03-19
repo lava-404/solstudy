@@ -1,7 +1,7 @@
 use anchor_lang::{context, prelude::*};
 
 use crate::{ MinterRole, Config };
-
+use crate::error::ErrorCode;
 #[derive(Accounts)]
 pub struct UpdateConfig <'info>{
   #[account(mut)]
@@ -35,9 +35,10 @@ pub struct UpdateConfig <'info>{
 }
 
 pub fn update_config(ctx: Context<UpdateConfig>) -> Result<()>{
-  let config = &mut ctx.accounts.config;
+  
   
   let old_backend_signer =  ctx.accounts.config.backend_signer;
+  let config = &mut ctx.accounts.config;
   if let Some(old_minter_role) = &mut ctx.accounts.old_minter_role {
     require! (
       old_minter_role.minter == old_backend_signer,
